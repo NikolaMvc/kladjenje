@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install *)",
+      "Bash(python -m scrapling install)",
+      "Bash(python -c \"from scrapling.fetchers import DynamicFetcher; print\\('Scrapling OK'\\)\")",
+      "Bash(python -c ' *)",
+      "Bash(python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000)",
+      "Bash(curl -s http://localhost:8000/api/history)",
+      "Bash(curl -s http://localhost:8000/)",
+      "Bash(pkill -f uvicorn)",
+      "PowerShell(Stop-Process -Id \\(Get-NetTCPConnection -LocalPort 8000 -ErrorAction SilentlyContinue\\).OwningProcess -Force -ErrorAction SilentlyContinue; Start-Sleep -Milliseconds 800; Write-Host \"Port oslobodjen\")",
+      "Bash(curl -s http://localhost:8000/api/status)",
+      "PowerShell(Invoke-RestMethod -Uri \"http://localhost:8000/api/status\")",
+      "PowerShell(Get-NetTCPConnection -LocalPort 8000 -ErrorAction SilentlyContinue)"
+    ]
+  }
+}

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0f0f1a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>BetAdvisor</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div id="app">
+
+  <!-- TOP HEADER -->
+  <header class="top-header">
+    <div class="top-header__row">
+      <div class="logo">Bet<span>Advisor</span></div>
+      <div class="header-actions">
+        <button class="icon-btn" onclick="doRefresh()" title="Osveži">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- STATUS BAR -->
+    <div style="font-size:11px;padding:3px 16px;background:var(--bg-primary);color:var(--text-dim);display:flex;justify-content:space-between">
+      <span id="status-bar">Čekanje na podatke...</span>
+      <span>auto-refresh: 10s</span>
+    </div>
+
+    <!-- TAB BAR -->
+    <nav class="tab-bar">
+      <button class="tab-btn active" data-tab="upcoming" onclick="handleTabClick('upcoming')">
+        Predstojeće
+      </button>
+      <button class="tab-btn" data-tab="live" onclick="handleTabClick('live')">
+        Uživo
+        <span id="live-badge" class="tab-badge" style="display:none">0</span>
+      </button>
+      <button class="tab-btn" data-tab="tipovi" onclick="handleTabClick('tipovi')">
+        Tipovi
+      </button>
+    </nav>
+  </header>
+
+  <!-- SCROLLABLE CONTENT -->
+  <main class="tab-content">
+
+    <!-- UPCOMING TAB -->
+    <section id="panel-upcoming" class="tab-panel active">
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <span>Učitavanje utakmica...</span>
+      </div>
+    </section>
+
+    <!-- LIVE TAB -->
+    <section id="panel-live" class="tab-panel">
+      <div class="empty-state">
+        <div class="icon">📡</div>
+        <p>Klikni "Uživo" da učitaš aktivne utakmice.</p>
+      </div>
+    </section>
+
+    <!-- TIPOVI TAB -->
+    <section id="panel-tipovi" class="tab-panel">
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <span>Učitavanje tipova...</span>
+      </div>
+    </section>
+
+  </main>
+
+</div><!-- #app -->
+
+<!-- REFRESH FAB -->
+<button id="refresh-fab" class="refresh-fab" onclick="doRefresh()" aria-label="Osveži">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="23 4 23 10 17 10"></polyline>
+    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+  </svg>
+</button>
+
+<!-- MATCH DETAIL MODAL -->
+<div id="modal-overlay" class="modal-overlay">
+  <div class="modal-drawer">
+    <div class="modal-handle"></div>
+    <div id="modal-header" class="modal-header"></div>
+    <div id="modal-body" class="modal-body"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
