@@ -10,6 +10,7 @@ let tipoviData   = [];
 let pollTimer    = null;
 let lastUpdated  = null;
 let isFirstLoad  = true;
+let fetchDone    = false;
 
 // ─── INIT ──────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -91,6 +92,8 @@ async function fetchAll() {
   } catch (e) {
     console.error('fetchAll error:', e);
     updateStatusBar(null, true);
+  } finally {
+    fetchDone = true;
   }
 }
 
@@ -115,11 +118,11 @@ function renderMatches(panelId, matches, isLive) {
   if (!panel) return;
 
   if (!matches || matches.length === 0) {
+    if (!fetchDone) { panel.innerHTML = ''; return; }
     panel.innerHTML = `
-      <div class="loading-state">
-        <div class="spinner"></div>
-        <span>${isLive ? 'Nema aktivnih utakmica.' : 'Učitavanje utakmica...'}</span>
-        <small style="color:var(--text-dim);margin-top:6px">Podaci se osvežavaju svakih 5 minuta</small>
+      <div class="empty-state">
+        <div class="icon">${isLive ? '📡' : '⏳'}</div>
+        <p>${isLive ? 'Nema aktivnih utakmica.' : 'Podaci stižu za koji minut.'}</p>
       </div>`;
     return;
   }
@@ -213,12 +216,8 @@ function renderTipovi() {
   if (!panel) return;
 
   if (!tipoviData || tipoviData.length === 0) {
-    panel.innerHTML = `
-      <div class="loading-state">
-        <div class="spinner"></div>
-        <span>Čekanje na analizu...</span>
-        <small style="color:var(--text-dim);margin-top:6px">Podaci stižu za ~5 minuta</small>
-      </div>`;
+    if (!fetchDone) { panel.innerHTML = ''; return; }
+    panel.innerHTML = `<div class="empty-state"><div class="icon">⏳</div><p>Tipovi stižu za koji minut.</p></div>`;
     return;
   }
 
