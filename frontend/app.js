@@ -2,14 +2,15 @@
 
 const DATA_URL = '/data';
 
-let activeTab    = 'upcoming';
-let upcomingData = [];
-let liveData     = [];
-let tipoviData   = [];
-let pollTimer    = null;
-let lastUpdated  = null;
-let isFirstLoad  = true;
-let fetchDone    = false;
+let activeTab     = 'upcoming';
+let upcomingData  = [];
+let liveData      = [];
+let tipoviData    = [];
+let zavresenoData = [];
+let pollTimer     = null;
+let lastUpdated   = null;
+let isFirstLoad   = true;
+let fetchDone     = false;
 
 // ─── INIT ──────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -29,60 +30,69 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function loadFromLocalStorage() {
   try {
-    const up   = localStorage.getItem('ba_upcoming');
-    const live = localStorage.getItem('ba_live');
-    const tip  = localStorage.getItem('ba_tipovi');
-    const ts   = localStorage.getItem('ba_updated');
-    if (up)   upcomingData = JSON.parse(up);
-    if (live) liveData     = JSON.parse(live);
-    if (tip)  tipoviData   = JSON.parse(tip);
-    if (ts)   lastUpdated  = ts;
+    const up  = localStorage.getItem('ba_upcoming');
+    const lv  = localStorage.getItem('ba_live');
+    const tip = localStorage.getItem('ba_tipovi');
+    const zav = localStorage.getItem('ba_zavrseno');
+    const ts  = localStorage.getItem('ba_updated');
+    if (up)  upcomingData  = JSON.parse(up);
+    if (lv)  liveData      = JSON.parse(lv);
+    if (tip) tipoviData    = JSON.parse(tip);
+    if (zav) zavresenoData = JSON.parse(zav);
+    if (ts)  lastUpdated   = ts;
     if (upcomingData.length || liveData.length || tipoviData.length) {
-      isFirstLoad = false; // imamo podatke — nema spinnera
+      isFirstLoad = false;
     }
-  } catch (e) { /* prvi put, nema podataka */ }
+  } catch (e) {}
 }
 
 // ─── FETCH ────────────────────────────────────────────────────────────────────
 async function fetchAll() {
   try {
-    const [upRes, liveRes, tipRes] = await Promise.all([
-      fetch(`${DATA_URL}/upcoming.json?t=${Date.now()}`),
-      fetch(`${DATA_URL}/live.json?t=${Date.now()}`),
-      fetch(`${DATA_URL}/tipovi.json?t=${Date.now()}`),
+    const t = Date.now();
+    const [upRes, liveRes, tipRes, zavRes] = await Promise.all([
+      fetch(`${DATA_URL}/upcoming.json?t=${t}`),
+      fetch(`${DATA_URL}/live.json?t=${t}`),
+      fetch(`${DATA_URL}/tipovi.json?t=${t}`),
+      fetch(`${DATA_URL}/zavrseno.json?t=${t}`),
     ]);
 
-    const upJson   = upRes.ok   ? await upRes.json()   : { matches: [] };
-    const liveJson = liveRes.ok ? await liveRes.json() : { matches: [] };
-    const tipJson  = tipRes.ok  ? await tipRes.json()  : { matches: [] };
+    const upJson  = upRes.ok  ? await upRes.json()  : { matches: [] };
+    const lvJson  = liveRes.ok? await liveRes.json(): { matches: [] };
+    const tipJson = tipRes.ok ? await tipRes.json() : { matches: [] };
+    const zavJson = zavRes.ok ? await zavRes.json() : { matches: [] };
 
-    const newUpcoming = upJson.matches   || [];
-    const newLive     = liveJson.matches || [];
-    const newTipovi   = tipJson.matches  || [];
-    const newUpdated  = upJson.last_updated || liveJson.last_updated;
+    const newUpcoming  = upJson.matches  || [];
+    const newLive      = lvJson.matches  || [];
+    const newTipovi    = tipJson.matches || [];
+    const newZavrseno  = zavJson.matches || [];
+    const newUpdated   = upJson.last_updated || lvJson.last_updated;
 
     const changed =
       JSON.stringify(newUpcoming) !== JSON.stringify(upcomingData) ||
       JSON.stringify(newLive)     !== JSON.stringify(liveData)     ||
-      JSON.stringify(newTipovi)   !== JSON.stringify(tipoviData);
+      JSON.stringify(newTipovi)   !== JSON.stringify(tipoviData)   ||
+      JSON.stringify(newZavrseno) !== JSON.stringify(zavresenoData);
 
-    upcomingData = newUpcoming;
-    liveData     = newLive;
-    tipoviData   = newTipovi;
-    lastUpdated  = newUpdated;
+    upcomingData  = newUpcoming;
+    liveData      = newLive;
+    tipoviData    = newTipovi;
+    zavresenoData = newZavrseno;
+    lastUpdated   = newUpdated;
 
-    // Sačuvaj u localStorage za sledeće otvaranje
     try {
-      localStorage.setItem('ba_upcoming', JSON.stringify(newUpcoming));
-      localStorage.setItem('ba_live',     JSON.stringify(newLive));
-      localStorage.setItem('ba_tipovi',   JSON.stringify(newTipovi));
+      localStorage.setItem('ba_upcoming',  JSON.stringify(newUpcoming));
+      localStorage.setItem('ba_live',      JSON.stringify(newLive));
+      localStorage.setItem('ba_tipovi',    JSON.stringify(newTipovi));
+      localStorage.setItem('ba_zavrseno',  JSON.stringify(newZavrseno));
       if (newUpdated) localStorage.setItem('ba_updated', newUpdated);
-    } catch (e) { /* storage pun */ }
+    } catch (e) {}
 
     if (changed || isFirstLoad) {
-      if (activeTab === 'upcoming') renderMatches('panel-upcoming', upcomingData, false);
-      if (activeTab === 'live')     renderMatches('panel-live',     liveData,     true);
-      if (activeTab === 'tipovi')   renderTipovi();
+      if (activeTab === 'upcoming')  renderMatches('panel-upcoming', upcomingData, false);
+      if (activeTab === 'live')      renderMatches('panel-live',     liveData,     true);
+      if (activeTab === 'tipovi')    renderTipovi();
+      if (activeTab === 'zavrseno')  renderZavrseno();
       updateLiveBadge(newLive.length);
       isFirstLoad = false;
     }
@@ -104,9 +114,10 @@ function switchTab(tab) {
   document.querySelectorAll('.tab-panel').forEach(p =>
     p.classList.toggle('active', p.id === `panel-${tab}`));
 
-  if (tab === 'upcoming') renderMatches('panel-upcoming', upcomingData, false);
-  if (tab === 'live')     renderMatches('panel-live',     liveData,     true);
-  if (tab === 'tipovi')   renderTipovi();
+  if (tab === 'upcoming')  renderMatches('panel-upcoming', upcomingData, false);
+  if (tab === 'live')      renderMatches('panel-live',     liveData,     true);
+  if (tab === 'tipovi')    renderTipovi();
+  if (tab === 'zavrseno')  renderZavrseno();
 }
 
 function handleTabClick(tab) { switchTab(tab); }
@@ -354,6 +365,42 @@ function renderModal(m) {
   }
 
   body.innerHTML = html || `<div class="empty-state"><p>Nema detalja za ovu utakmicu.</p></div>`;
+}
+
+// ─── ZAVRŠENO TAB ────────────────────────────────────────────────────────────
+function renderZavrseno() {
+  const panel = document.getElementById('panel-zavrseno');
+  if (!panel) return;
+
+  if (!zavresenoData || zavresenoData.length === 0) {
+    panel.innerHTML = fetchDone
+      ? `<div class="empty-state"><div class="icon">🏁</div><p>Nema završenih tipova još.<br>Pojavljuju se kada predložene utakmice završe.</p></div>`
+      : '';
+    return;
+  }
+
+  let html = `<div class="tipovi-header">Završene utakmice — rezultati tipova</div>`;
+  zavresenoData.forEach(m => {
+    const tip    = m.tip || {};
+    const result = m.tip_result;
+    const isWin  = result === 'win';
+    const isLoss = result === 'loss';
+    const sh = m.final_score?.home ?? '?';
+    const sa = m.final_score?.away ?? '?';
+
+    html += `
+      <div class="zavrseno-item ${isWin ? 'win' : isLoss ? 'loss' : ''}">
+        <div class="zavrseno-icon">${isWin ? '✅' : isLoss ? '❌' : '⏳'}</div>
+        <div class="zavrseno-content">
+          <div class="zavrseno-match">${escHtml(m.home_team)} vs ${escHtml(m.away_team)}</div>
+          <div class="zavrseno-league">${escHtml(m.league || '')} · ${formatTime(m.kickoff)}</div>
+          <div class="zavrseno-tip">🎯 ${escHtml(tip.market || '')} · <span class="zavrseno-conf">${tip.confidence || 0}%</span></div>
+        </div>
+        <div class="zavrseno-score">${sh} - ${sa}</div>
+      </div>`;
+  });
+
+  panel.innerHTML = html;
 }
 
 // ─── REFRESH ─────────────────────────────────────────────────────────────────

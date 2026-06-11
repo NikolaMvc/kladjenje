@@ -99,8 +99,6 @@ def scrape_today_matches() -> tuple[list[dict], dict]:
                     kickoff_iso = f"{date.today().isoformat()}T{t.zfill(5)}:00"
 
             status = "live" if is_live else ("upcoming" if is_scheduled else "finished")
-            if status == "finished":
-                continue
 
             league     = league_map.get(match_id, "Football")
             league_url = league_urls.get(league)

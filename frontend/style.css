@@ -850,6 +850,48 @@ html, body {
   color: var(--accent);
 }
 
+/* ===== ZAVRŠENO TAB ===== */
+.zavrseno-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-card);
+  border-left: 4px solid var(--border);
+}
+
+.zavrseno-item.win  { border-left-color: var(--green); background: rgba(46,204,113,0.05); }
+.zavrseno-item.loss { border-left-color: var(--red);   background: rgba(231,76,60,0.05); }
+
+.zavrseno-icon { font-size: 20px; flex-shrink: 0; }
+
+.zavrseno-content { flex: 1; min-width: 0; }
+
+.zavrseno-match {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.zavrseno-league { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+
+.zavrseno-tip { font-size: 12px; color: var(--text-secondary); margin-top: 3px; }
+
+.zavrseno-conf { color: var(--accent); font-weight: 700; }
+
+.zavrseno-score {
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--accent);
+  flex-shrink: 0;
+  min-width: 48px;
+  text-align: center;
+}
+
 /* Live badge (inside tipovi) */
 .live-badge {
   display: inline-block;
