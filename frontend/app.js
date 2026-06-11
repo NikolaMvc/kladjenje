@@ -13,14 +13,35 @@ let isFirstLoad  = true;
 
 // ─── INIT ──────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  // Odmah prikaži keširane podatke iz prošlog puta (instant, bez čekanja)
+  loadFromLocalStorage();
+
   switchTab('upcoming');
+
+  // Tiho osvežavaj u pozadini
   fetchAll();
-  pollTimer = setInterval(fetchAll, 30000); // svakih 30s (podaci se menjaju svakih 5min)
+  pollTimer = setInterval(fetchAll, 30000);
 
   document.getElementById('modal-overlay')?.addEventListener('click', e => {
     if (e.target.id === 'modal-overlay') closeModal();
   });
 });
+
+function loadFromLocalStorage() {
+  try {
+    const up   = localStorage.getItem('ba_upcoming');
+    const live = localStorage.getItem('ba_live');
+    const tip  = localStorage.getItem('ba_tipovi');
+    const ts   = localStorage.getItem('ba_updated');
+    if (up)   upcomingData = JSON.parse(up);
+    if (live) liveData     = JSON.parse(live);
+    if (tip)  tipoviData   = JSON.parse(tip);
+    if (ts)   lastUpdated  = ts;
+    if (upcomingData.length || liveData.length || tipoviData.length) {
+      isFirstLoad = false; // imamo podatke — nema spinnera
+    }
+  } catch (e) { /* prvi put, nema podataka */ }
+}
 
 // ─── FETCH ────────────────────────────────────────────────────────────────────
 async function fetchAll() {
@@ -49,6 +70,14 @@ async function fetchAll() {
     liveData     = newLive;
     tipoviData   = newTipovi;
     lastUpdated  = newUpdated;
+
+    // Sačuvaj u localStorage za sledeće otvaranje
+    try {
+      localStorage.setItem('ba_upcoming', JSON.stringify(newUpcoming));
+      localStorage.setItem('ba_live',     JSON.stringify(newLive));
+      localStorage.setItem('ba_tipovi',   JSON.stringify(newTipovi));
+      if (newUpdated) localStorage.setItem('ba_updated', newUpdated);
+    } catch (e) { /* storage pun */ }
 
     if (changed || isFirstLoad) {
       if (activeTab === 'upcoming') renderMatches('panel-upcoming', upcomingData, false);
