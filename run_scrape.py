@@ -48,7 +48,8 @@ def main():
     )[:20]
 
     ts = datetime.now(timezone.utc).strftime("%H:%M")
-    os.makedirs("data", exist_ok=True)
+    out_dir = "frontend/data"
+    os.makedirs(out_dir, exist_ok=True)
 
     files = {
         "upcoming.json": {"matches": upcoming_result, "last_updated": ts},
@@ -56,9 +57,9 @@ def main():
         "tipovi.json":   {"matches": tipovi,           "last_updated": ts},
     }
     for fname, payload in files.items():
-        with open(f"data/{fname}", "w", encoding="utf-8") as f:
+        with open(f"{out_dir}/{fname}", "w", encoding="utf-8") as f:
             json.dump(payload, f, ensure_ascii=False, separators=(",", ":"))
-        print(f"  Sacuvano: data/{fname}")
+        print(f"  Sacuvano: {out_dir}/{fname}")
 
     print(f"Gotovo — {len(upcoming_result)} predstojecih, {len(live_result)} uzivo, {len(tipovi)} tipova")
 

@@ -3,7 +3,7 @@ __pycache__/
 *.pyc
 .env
 cache_data.json
-data/
+/data/
 .venv/
 venv/
 *.egg-info/

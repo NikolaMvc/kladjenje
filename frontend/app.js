@@ -1,7 +1,6 @@
 /* BetAdvisor — statički frontend, čita JSON sa GitHub data grane */
 
-// !! PROMENI OVO na tvoje vrednosti posle kreiranja GitHub repo-a !!
-const GITHUB_RAW = 'https://raw.githubusercontent.com/NikolaMvc/kladjenje/data';
+const DATA_URL = '/data';
 
 let activeTab    = 'upcoming';
 let upcomingData = [];
@@ -48,9 +47,9 @@ function loadFromLocalStorage() {
 async function fetchAll() {
   try {
     const [upRes, liveRes, tipRes] = await Promise.all([
-      fetch(`${GITHUB_RAW}/upcoming.json?t=${Date.now()}`),
-      fetch(`${GITHUB_RAW}/live.json?t=${Date.now()}`),
-      fetch(`${GITHUB_RAW}/tipovi.json?t=${Date.now()}`),
+      fetch(`${DATA_URL}/upcoming.json?t=${Date.now()}`),
+      fetch(`${DATA_URL}/live.json?t=${Date.now()}`),
+      fetch(`${DATA_URL}/tipovi.json?t=${Date.now()}`),
     ]);
 
     const upJson   = upRes.ok   ? await upRes.json()   : { matches: [] };
