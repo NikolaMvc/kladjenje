@@ -115,83 +115,58 @@ def analyze_upcoming(match: dict) -> dict:
     home = match.get("home_team", "?")
     away = match.get("away_team", "?")
 
-    standings = match.get("standings") or {}
-
-    # Poslednjih 5 utakmica svakog tima (sa is_home flagom)
+    standings   = match.get("standings") or {}
     home_recent = match.get("home_recent_5") or _fallback_recent(match, "home")
     away_recent = match.get("away_recent_5") or _fallback_recent(match, "away")
 
     home_avg, home_bd = _weighted_form(home_recent, standings)
     away_avg, away_bd = _weighted_form(away_recent, standings)
 
-    diff     = home_avg - away_avg  # + = domaćin jači, - = gost jači
+    diff     = home_avg - away_avg   # + = domaćin jači, - = gost jači
     abs_diff = abs(diff)
 
-    # ── 1X2 / dupla šansa ──────────────────────────────────────────────────────
-    markets = {}
-
-    if diff >= 1.0:
-        markets["1 (Pobeda domaćina)"] = round(min(52 + abs_diff * 20, 87))
-        markets["1X (Dupla šansa)"]    = round(min(markets["1 (Pobeda domaćina)"] + 6, 92))
-    elif diff >= 0.4:
-        markets["1X (Dupla šansa)"]    = round(min(52 + abs_diff * 16, 80))
-        markets["1 (Pobeda domaćina)"] = round(markets["1X (Dupla šansa)"] - 7)
-    elif diff <= -1.0:
-        markets["2 (Pobeda gosta)"]    = round(min(52 + abs_diff * 20, 87))
-        markets["X2 (Dupla šansa)"]    = round(min(markets["2 (Pobeda gosta)"] + 6, 92))
-    elif diff <= -0.4:
-        markets["X2 (Dupla šansa)"]    = round(min(52 + abs_diff * 16, 80))
-        markets["2 (Pobeda gosta)"]    = round(markets["X2 (Dupla šansa)"] - 7)
+    # ── Tip: samo pobeda domaćina ili gosta ───────────────────────────────────
+    if diff >= 0:
+        market   = f"1 — Pobeda: {home}"
+        odds_key = "home"
     else:
-        markets["X (Remi)"]         = round(52 + (0.4 - abs_diff) * 12)
-        markets["1X (Dupla šansa)"] = 55
-        markets["X2 (Dupla šansa)"] = 55
+        market   = f"2 — Pobeda: {away}"
+        odds_key = "away"
 
-    # ── BTTS i Over/Under (Poisson, iz forme) ─────────────────────────────────
-    hfh = match.get("home_form_home_summary") or {}
-    afa = match.get("away_form_away_summary") or {}
+    # Confidence: 50% baza + razlika × faktor (max 90%)
+    # diff=0 → 50%, diff=1.0 → 63%, diff=2.0 → 77%, diff=3.0 → 90%
+    confidence = min(90, round(50 + abs_diff * 13.3))
 
-    exp_h     = _safe(hfh, "avg_scored", 1.2)
-    exp_a     = _safe(afa, "avg_scored", 1.0)
-    exp_total = exp_h + exp_a
+    # Kvota za ovaj specifičan tip sa FlashScore
+    odds     = match.get("odds") or {}
+    tip_odds = odds.get(odds_key)
 
-    hfh_m = (hfh.get("matches") or [])
-    afa_m = (afa.get("matches") or [])
-    home_sr = sum(1 for m in hfh_m if (m.get("goals_scored") or 0) > 0) / max(len(hfh_m), 1)
-    away_sr = sum(1 for m in afa_m if (m.get("goals_scored") or 0) > 0) / max(len(afa_m), 1)
+    stars = max(1, min(5, round(confidence / 20)))
 
-    btts_prob  = max(home_sr, 0.4) * max(away_sr, 0.4)
-    over25_prob = _over_prob(exp_total, 2.0)
-
-    markets["BTTS Da"]          = round(btts_prob * 88 + 5)
-    markets["Over 2.5 golova"]  = round(min(over25_prob * 100, 90))
-    markets["Under 2.5 golova"] = round(100 - markets["Over 2.5 golova"])
-
-    # ── Odaberi najboljeg ──────────────────────────────────────────────────────
-    best_market = max(markets, key=lambda k: markets[k])
-    confidence  = markets[best_market]
-    stars       = max(1, min(5, round(confidence / 20)))
-
-    explanation = _explain_upcoming(
-        best_market, home, away, home_avg, away_avg, diff, confidence,
-        home_bd, away_bd, btts_prob, over25_prob, exp_h, exp_a
+    home_pts = sum(d["pts"] for d in home_bd)
+    away_pts = sum(d["pts"] for d in away_bd)
+    explanation = (
+        f"{home}: {home_pts}pt / {len(home_bd)} utakmica = prosek {home_avg:.2f}. "
+        f"{away}: {away_pts}pt / {len(away_bd)} utakmica = prosek {away_avg:.2f}. "
+        f"{'Domaćin' if diff >= 0 else 'Gost'} je jači za {abs_diff:.2f} boda — "
+        f"tip '{market}' sa {confidence}% sigurnosti."
     )
 
     key_factors = [d["desc"] for d in home_bd] + [d["desc"] for d in away_bd]
 
     return {
-        "market":     best_market,
+        "market":     market,
+        "tip_odds":   tip_odds,
         "confidence": confidence,
         "stars":      stars,
         "explanation": explanation,
-        "key_factors": key_factors[:8],
+        "key_factors": key_factors[:10],
         "stats_breakdown": {
             "home_form_avg":  home_avg,
             "away_form_avg":  away_avg,
             "difference":     round(diff, 3),
             "home_breakdown": home_bd,
             "away_breakdown": away_bd,
-            "all_markets":    markets,
         },
     }
 
@@ -326,35 +301,3 @@ def analyze_live(match: dict) -> dict:
     }
 
 
-# ─── OBJAŠNJENJE ───────────────────────────────────────────────────────────────
-
-def _explain_upcoming(market, home, away, home_avg, away_avg, diff, conf,
-                      home_bd, away_bd, btts_prob, over25_prob, exp_h, exp_a):
-    n_home = len(home_bd)
-    n_away = len(away_bd)
-    home_pts = sum(d["pts"] for d in home_bd)
-    away_pts = sum(d["pts"] for d in away_bd)
-
-    lines = [
-        f"{home}: {home_pts}pt / {n_home} utakmica = prosek {home_avg:.2f}.",
-        f"{away}: {away_pts}pt / {n_away} utakmica = prosek {away_avg:.2f}.",
-    ]
-
-    if abs(diff) < 0.1:
-        lines.append(f"Ekipe su veoma izjednačene (razlika {abs(diff):.2f}), teško predvideti pobednika.")
-    elif diff > 0:
-        lines.append(f"{home} je bolji za {diff:.2f} boda — favorit.")
-    else:
-        lines.append(f"{away} je bolji za {abs(diff):.2f} boda — favorit.")
-
-    if "BTTS" in market:
-        lines.append(f"Verovatnoća da oba daju gol: {round(btts_prob*100)}%.")
-    elif "Over" in market:
-        lines.append(f"Očekivano {exp_h:.1f}+{exp_a:.1f}={exp_h+exp_a:.1f} golova, Over 2.5 ima {round(over25_prob*100)}%.")
-
-    lines.append(f"Tip '{market}' ima {conf}% sigurnosti.")
-    return " ".join(lines)
-
-
-def _fallback_tip(message="Nedovoljno podataka."):
-    return {"market": "N/A", "confidence": 0, "stars": 0, "explanation": message, "key_factors": [], "stats_breakdown": {}}

@@ -180,18 +180,21 @@ function renderCard(m, isLive) {
        </div>`
     : '';
 
+  const tipOdds    = tip.tip_odds;
+  const tipOddsHtml = tipOdds ? `<span class="tip-kvota">${tipOdds.toFixed(2)}</span>` : '';
+
   const tipHtml = hasValidTip ? `
     <div class="tip-row">
       <div class="tip-chip" onclick="event.stopPropagation();openModal('${escHtml(m.id)}')">
         <span class="tip-chip__icon">🎯</span>
         <span class="tip-chip__text">${escHtml(market)}</span>
+        ${tipOddsHtml}
       </div>
       <div style="display:flex;align-items:center;gap:6px">
         ${renderStars(stars)}
         <span class="confidence-badge">${confidence}%</span>
       </div>
-    </div>
-    ${oddsHtml}` : oddsHtml;
+    </div>` : '';
 
   const liveBar = isLive && m.stats ? `
     <div class="live-stats-bar">
@@ -250,7 +253,7 @@ function renderTipovi() {
           <div class="tipovi-league">${escHtml(m.league || '')} · ${formatTime(m.kickoff)}</div>
           <div class="tipovi-tip">
             <span style="font-size:13px;font-weight:700;color:var(--accent)">🎯 ${escHtml(tip.market || '')}</span>
-            ${oddsStr}
+            ${tip.tip_odds ? `<span class="tip-kvota">${tip.tip_odds.toFixed(2)}</span>` : ''}
           </div>
         </div>
         <div class="tipovi-right">

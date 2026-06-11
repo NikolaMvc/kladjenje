@@ -317,50 +317,25 @@ def scrape_league_standings(league_url: str) -> dict:
 def scrape_match_odds(match_url: str) -> dict:
     """
     Scrapin 1X2 kvote za utakmicu sa FlashScore-a.
-    Vraća {'home': float, 'draw': float, 'away': float, 'market_label': str}.
+    Vraća {'home': float, 'draw': float, 'away': float}.
     """
     odds_url = match_url.rstrip("/") + "/#/match-odds/1x2/0"
     page = _fetch(odds_url, timeout=35000)
     if page is None:
         return {}
 
-    # Pokušaj da nađe odds elemente
-    # FlashScore odds su u tabeli sa bookmakers i njihovim kvotama
-    rows = page.css('[class*="oddsRow"], [class*="ui-table__row"], [class*="odds__row"]')
-
-    for row in rows[:15]:
-        try:
-            cells = row.css('td, [class*="oddsCell"], [class*="odds__odd"], [class*="kefOdds"]')
-            if len(cells) < 3:
-                continue
-
-            def _parse(el):
-                t = (el.text or "").strip()
-                try:
-                    v = float(t)
-                    return v if 1.01 < v < 50 else None
-                except Exception:
-                    return None
-
-            h = _parse(cells[0])
-            d = _parse(cells[1])
-            a = _parse(cells[2])
-
-            if h and d and a:
-                return {"home": h, "draw": d, "away": a}
-        except Exception:
-            continue
-
-    # Fallback: traži bilo koji element sa klasom koja sadrži odds vrednosti
-    odd_els = page.css('[class*="oddsValueInner"], [class*="kefValue"], [class*="odd-value"]')
+    # FlashScore koristi data-testid="wcl-oddsValue" za prikaz kvota
+    odd_els = page.css('[data-testid="wcl-oddsValue"]')
     vals = []
-    for el in odd_els[:6]:
+    for el in odd_els:
         try:
             v = float((el.text or "").strip())
             if 1.01 < v < 50:
                 vals.append(v)
         except Exception:
             pass
+        if len(vals) == 3:
+            break
 
     if len(vals) >= 3:
         return {"home": vals[0], "draw": vals[1], "away": vals[2]}

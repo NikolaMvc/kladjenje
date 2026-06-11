@@ -738,6 +738,17 @@ html, body {
   color: var(--text-dim);
 }
 
+.tip-kvota {
+  background: rgba(232,160,32,0.18);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 4px;
+  border: 1px solid rgba(232,160,32,0.35);
+}
+
 /* ===== MODAL ODDS ===== */
 .modal-odds {
   display: flex;

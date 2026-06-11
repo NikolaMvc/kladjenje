@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 sys.path.insert(0, os.path.dirname(__file__))
 
 from backend.scraper.aggregator import get_all_matches
+from backend.scraper.flashscore import scrape_match_odds
 from backend.analyzer.claude_analyzer import analyze_upcoming, analyze_live
 
 OUT = "frontend/data"
@@ -32,22 +33,11 @@ def _save_json(path: str, data):
 def _tip_won(market: str, score_h: int, score_a: int) -> bool:
     """Da li je tip pogodjen na osnovu konacnog rezultata."""
     m = market.lower()
-    if "pobeda domaćina" in m or m == "1":
+    # Format: "1 — pobeda: tim" ili "2 — pobeda: tim"
+    if m.startswith("1 ") or m.startswith("1—") or "pobeda domaćina" in m:
         return score_h > score_a
-    if "pobeda gosta" in m or m == "2":
+    if m.startswith("2 ") or m.startswith("2—") or "pobeda gosta" in m:
         return score_a > score_h
-    if "remi" in m or m == "x":
-        return score_h == score_a
-    if "1x" in m:
-        return score_h >= score_a
-    if "x2" in m:
-        return score_a >= score_h
-    if "over 2.5" in m:
-        return (score_h + score_a) > 2
-    if "under 2.5" in m:
-        return (score_h + score_a) <= 2
-    if "btts" in m:
-        return score_h > 0 and score_a > 0
     return False
 
 
@@ -98,6 +88,24 @@ def main():
             tipovi.append(m)
         if len(tipovi) == 10:
             break
+
+    # ── Dohvati kvote za top 10 tipova ────────────────────────────────────────
+    print("Dohvatam kvote za top tipove...")
+    for m in tipovi:
+        match_url = m.get("match_url", "")
+        if not match_url:
+            continue
+        try:
+            odds = scrape_match_odds(match_url)
+            if odds:
+                m["odds"] = odds
+                # Upiši kvotu i u tip
+                tip = m.get("tip") or {}
+                odds_key = "home" if tip.get("market", "").startswith("1") else "away"
+                tip["tip_odds"] = odds.get(odds_key)
+                m["tip"] = tip
+        except Exception as e:
+            print(f"  Kvota greska ({m.get('home_team')}): {e}")
 
     # ── Završeno: cross-reference prethodnih tipova sa završenim utakmicom ─────
     prev_tipovi   = _load_json(f"{OUT}/tipovi.json", {}).get("matches", [])
